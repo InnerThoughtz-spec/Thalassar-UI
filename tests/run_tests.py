@@ -34,8 +34,11 @@ def main() -> None:
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     library = root / "Library.lua"
+    standalone_demo = root / "Demo.lua"
     if not library.is_file():
         raise SystemExit("Library.lua is missing; build the public library first.")
+    if not standalone_demo.is_file():
+        raise SystemExit("Demo.lua is missing; run tools/build.py first.")
     luau = executable("luau", args.luau_dir)
     compiler = executable("luau-compile", args.luau_dir)
     # The wrapper gives the distribution lexical access to the offline bindings.
@@ -47,7 +50,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="thalassar-tests-") as scratch:
         composed = Path(scratch) / "library_tests.lua"
         composed.write_text(harness, encoding="utf-8")
-        for label, path in (("distribution", library), ("test harness", composed)):
+        for label, path in (("distribution", library), ("standalone demo", standalone_demo), ("test harness", composed)):
             result = subprocess.run([compiler, "--null", "-O0", str(path)], capture_output=True, text=True)
             if result.returncode:
                 raise SystemExit(result.stderr or result.stdout)
@@ -72,6 +75,20 @@ assert(Runtime.removed == Runtime.made and Runtime.connectedCount() == 0, "demo 
 print("PASS: public demo renders and cleans up offline")
 ''', encoding="utf-8")
         subprocess.run([luau, str(smoke)], check=True)
+        # Execute the actual one-fetch artifact twice with no HTTP or preloaded
+        # library. Exercise its real UI callbacks, state and resource ownership.
+        standalone = Path(scratch) / "standalone_demo_tests.lua"
+        standalone.write_text(
+            mock + "\nlocal function runStandaloneDemo()\n"
+            + standalone_demo.read_text(encoding="utf-8") + "\nend\n"
+            + (root / "tests" / "demo_spec.lua").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        result = subprocess.run([compiler, "--null", "-O0", str(standalone)], capture_output=True, text=True)
+        if result.returncode:
+            raise SystemExit(result.stderr or result.stdout)
+        print("PASS: standalone demo test harness compiles", flush=True)
+        subprocess.run([luau, str(standalone)], check=True)
 
 
 if __name__ == "__main__":

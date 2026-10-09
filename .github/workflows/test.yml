@@ -13,7 +13,7 @@ jobs:
       - name: Rebuild distribution
         run: |
           python3 tools/build.py
-          git diff --exit-code -- Library.lua
+          git diff --exit-code -- Library.lua Demo.lua
       - name: Install official Luau CLI
         run: |
           curl --fail --location --retry 3 https://github.com/luau-lang/luau/releases/download/0.741/luau-ubuntu.zip --output /tmp/luau.zip
