@@ -1,0 +1,26 @@
+name: UI library checks
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild distribution
+        run: |
+          python3 tools/build.py
+          git diff --exit-code -- Library.lua
+      - name: Install official Luau CLI
+        run: |
+          curl --fail --location --retry 3 https://github.com/luau-lang/luau/releases/download/0.741/luau-ubuntu.zip --output /tmp/luau.zip
+          mkdir -p /tmp/luau-cli
+          unzip -q /tmp/luau.zip -d /tmp/luau-cli
+          chmod +x /tmp/luau-cli/luau /tmp/luau-cli/luau-compile
+      - name: Compile and test the public library
+        run: python3 tests/run_tests.py --luau-dir /tmp/luau-cli
+      - name: Test optional wheel companion
+        run: python3 adapters/matcha/wheel_helper.py --self-test

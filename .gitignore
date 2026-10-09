@@ -1,0 +1,21 @@
+# Local runtime and generated files
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+*.log
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local-only copies, credentials, and captures
+.env
+.env.*
+backups/
+local/
+screenshots/
+*.rbxl
+*.rbxlx
